@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # REPLACE THIS with your actual GitHub repo URL
+    repoURL: 'https://github.com/akos050607/homelab-gitops.git'
+    targetRevision: HEAD
+    path: apps
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
