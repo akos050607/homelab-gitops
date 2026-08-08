@@ -1,0 +1,31 @@
+# apps/monitoring.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: "77.*"
+    helm:
+      values: |
+        prometheus:
+          prometheusSpec:
+            retention: 3d
+            nodeSelector: { kubernetes.io/hostname: k3s-server }
+            resources:
+              requests: { cpu: 200m, memory: 1Gi }
+              limits:   { memory: 2Gi }
+        grafana:
+          nodeSelector: { kubernetes.io/hostname: k3s-server }
+          admin:
+            existingSecret: grafana-admin   # A5 — sealed, not --set
+        alertmanager:
+          enabled: false
+  destination: { server: https://kubernetes.default.svc, namespace: monitoring }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
