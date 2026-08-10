@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: loki
+    targetRevision: "6.*"
+    helm:
+      values: |
+        deploymentMode: SingleBinary
+        loki:
+          auth_enabled: false
+          commonConfig: { replication_factor: 1 }
+          storage: { type: filesystem }
+          schemaConfig:
+            configs:
+              - from: "2024-04-01"
+                store: tsdb
+                object_store: filesystem
+                schema: v13
+                index: { prefix: loki_index_, period: 24h }
+        singleBinary:
+          replicas: 1
+          nodeSelector: { kubernetes.io/hostname: k3s-server }
+          persistence: { size: 10Gi }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { memory: 1Gi }
+        chunksCache:  { enabled: false }
+        resultsCache: { enabled: false }
+        read:    { replicas: 0 }
+        write:   { replicas: 0 }
+        backend: { replicas: 0 }
+        lokiCanary: { enabled: false }
+        test:       { enabled: false }
+        gateway:    { enabled: false }
+  destination: { server: https://kubernetes.default.svc, namespace: monitoring }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]
