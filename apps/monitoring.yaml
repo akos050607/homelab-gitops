@@ -25,6 +25,11 @@ spec:
             existingSecret: grafana-admin
             userKey: admin-user
             passwordKey: admin-password
+          additionalDataSources:
+            - name: Loki
+              type: loki
+              url: http://loki.monitoring.svc.cluster.local:3100
+              access: proxy
         alertmanager:
           enabled: false
   destination: { server: https://kubernetes.default.svc, namespace: monitoring }
