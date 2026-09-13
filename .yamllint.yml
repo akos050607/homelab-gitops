@@ -42,6 +42,7 @@ rules:
     max: 120
     ignore: |
       apps/sealed-*.yaml
+      identity/*-sealed-*.yaml
 
   # A single-document manifest does not need a leading `---`. Requiring it would
   # be churn across every file for no gain.

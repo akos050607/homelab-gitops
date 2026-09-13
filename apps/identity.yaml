@@ -1,0 +1,24 @@
+# apps/identity.yaml
+#
+# The identity stack: Keycloak, its CloudNativePG database, the realm, and the
+# OIDC client application. Its own Argo CD Application rather than more files in
+# `apps/` so that the whole stack has one health rollup in the Argo CD tree, one
+# sync unit, and one place to look when identity is broken.
+#
+# `recurse: false` is deliberate: every manifest is a flat, numbered file in
+# `identity/`, and the numbers are the sync order documented there.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: identity
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/akos050607/homelab-gitops.git
+    targetRevision: HEAD
+    path: identity
+  destination: { server: https://kubernetes.default.svc, namespace: identity }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

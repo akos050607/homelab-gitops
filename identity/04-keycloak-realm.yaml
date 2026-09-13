@@ -1,0 +1,92 @@
+# The `homelab` realm, declaratively.
+#
+# This is the bootstrap realm: enough for Keycloak to start and for the
+# authorization-code flow to work end to end. The WebAuthn passwordless flow and
+# the SAML client are configured in the admin console and then exported back
+# over this file, because hand-writing an authentication flow binding is error
+# prone and the export is the artifact that proves the realm really is in git.
+#
+# Two values are placeholders, substituted by the `render-realm` initContainer at
+# 05 from the SealedSecret at 02. They are NOT secrets-in-git: the literal string
+# `__OIDC_CLIENT_SECRET__` is what is committed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: identity
+data:
+  homelab-realm.json: |
+    {
+      "realm": "homelab",
+      "displayName": "homelab",
+      "enabled": true,
+      "sslRequired": "external",
+
+      "registrationAllowed": false,
+      "resetPasswordAllowed": false,
+      "loginWithEmailAllowed": true,
+      "duplicateEmailsAllowed": false,
+      "verifyEmail": false,
+
+      "accessTokenLifespan": 300,
+      "ssoSessionIdleTimeout": 1800,
+      "ssoSessionMaxLifespan": 36000,
+
+      "bruteForceProtected": true,
+      "failureFactor": 10,
+
+      "roles": {
+        "realm": [
+          {
+            "name": "platform-admin",
+            "description": "Carried in realm_access.roles so the demo app has a non-default claim to render."
+          }
+        ]
+      },
+
+      "users": [
+        {
+          "username": "akos",
+          "enabled": true,
+          "emailVerified": true,
+          "firstName": "Akos",
+          "lastName": "Szenassy",
+          "email": "akos@szenassy-akos.com",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "__DEMO_USER_PASSWORD__",
+              "temporary": false
+            }
+          ],
+          "realmRoles": ["default-roles-homelab", "platform-admin"]
+        }
+      ],
+
+      "clients": [
+        {
+          "clientId": "oidc-demo",
+          "name": "OIDC demo application",
+          "description": "Server-rendered Go app. Confidential client, auth code flow with PKCE.",
+          "enabled": true,
+          "protocol": "openid-connect",
+
+          "publicClient": false,
+          "secret": "__OIDC_CLIENT_SECRET__",
+
+          "standardFlowEnabled": true,
+
+          "implicitFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "serviceAccountsEnabled": false,
+
+          "redirectUris": ["https://app.szenassy-akos.com/callback"],
+          "webOrigins": ["https://app.szenassy-akos.com"],
+
+          "attributes": {
+            "pkce.code.challenge.method": "S256",
+            "post.logout.redirect.uris": "https://app.szenassy-akos.com/"
+          }
+        }
+      ]
+    }

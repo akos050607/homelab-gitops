@@ -1,0 +1,8 @@
+# The namespace has to exist before the SealedSecrets decrypt into it and before
+# CNPG creates the database credential in it, so it syncs first.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: identity
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"

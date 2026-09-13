@@ -1,0 +1,41 @@
+# apps/cnpg-operator.yaml
+#
+# CloudNativePG: the Postgres operator that backs Keycloak's database.
+#
+# An operator rather than a bare StatefulSet because the interesting part is not
+# "a Postgres pod exists" — it is that something owns the lifecycle: it generates
+# the application credential itself, handles the primary/replica role, and knows
+# how to take a backup. The credential property is the one that matters here:
+# CNPG creates `keycloak-db-app` with a random password, so the database password
+# is never authored, never sealed, and never present in this repository at all.
+#
+# The operator is cluster-scoped and installs CRDs, so it lands in its own
+# namespace and is kept separate from the workloads in `identity/`.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cnpg-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://cloudnative-pg.github.io/charts
+    chart: cloudnative-pg
+    targetRevision: "0.29.*"
+    helm:
+      values: |
+        # The edge node is a laptop that suspends. Every stateful component on
+        # this cluster is pinned to the Hetzner node — see identity/02.
+        nodeSelector: { kubernetes.io/hostname: k3s-server }
+        resources:
+          requests: { cpu: 50m, memory: 128Mi }
+          limits:   { memory: 256Mi }
+        monitoring:
+          # kube-prometheus-stack is already running, so the operator's
+          # PodMonitor has something to be scraped by. Free observability on the
+          # database layer; costs one line.
+          podMonitorEnabled: true
+  destination: { server: https://kubernetes.default.svc, namespace: cnpg-system }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
