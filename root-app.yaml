@@ -6,7 +6,6 @@ metadata:
 spec:
   project: default
   source:
-    # REPLACE THIS with your actual GitHub repo URL
     repoURL: 'https://github.com/akos050607/homelab-gitops.git'
     targetRevision: HEAD
     path: apps
