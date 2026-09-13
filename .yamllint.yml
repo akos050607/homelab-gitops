@@ -1,0 +1,101 @@
+# yamllint configuration for this repository.
+#
+# The guiding rule: RELAX anything that is a style preference, KEEP STRICT
+# anything that is a bug class. Running `extends: default` unmodified produces
+# 60 findings here, 42 of them complaints about a flow style that is deliberate
+# and readable — that is noise, and a linter that cries wolf gets switched off.
+#
+# Tools are not opinions. Every relaxation below is justified; every rule kept
+# strict catches something that can actually break a deployment.
+
+extends: default
+
+# bin/, .venv/ and .render/ are tooling, not source.
+ignore-from-file: .gitignore
+
+rules:
+  # ---------------------------------------------------------------------------
+  # RELAXED — deliberate style choices in this repo
+  # ---------------------------------------------------------------------------
+
+  # `resources: { requests: { cpu: 100m } }` keeps short manifests compact and
+  # scannable. The default rule forbids the inner spaces; the style is intended.
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+  # Values are column-aligned on purpose, e.g.
+  #   requests: { cpu: 100m, memory: 64Mi }
+  #   limits:   { cpu: 500m, memory: 128Mi }
+  colons:
+    max-spaces-after: -1
+
+  # 80 is a terminal width from the 1970s. Helm values blocks and long image
+  # references routinely exceed it without being hard to read.
+  #
+  # The exception is scoped rather than global: a SealedSecret's `encryptedData`
+  # is a single 700+ character base64 blob emitted by `kubeseal`. It cannot be
+  # wrapped, and it is generated output — adding `# yamllint disable-line`
+  # comments would be lost the next time the secret is re-sealed. Exempting only
+  # those files keeps the 120-column rule meaningful everywhere else.
+  line-length:
+    max: 120
+    ignore: |
+      apps/sealed-*.yaml
+
+  # A single-document manifest does not need a leading `---`. Requiring it would
+  # be churn across every file for no gain.
+  document-start: disable
+
+  # This repo genuinely mixes the two list styles:
+  #   apps/test-app.yaml  ->  containers:\n  - name: ...     (not indented)
+  #   apps/demo-hpa.yaml  ->  paths:\n    - path: /         (indented)
+  # Both are valid YAML and both are common in Kubernetes documentation. Rather
+  # than reformat working manifests, `consistent` permits either convention but
+  # still fails a file that mixes them — which is the case that actually
+  # confuses a reader.
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+
+  # GitHub Actions requires a top-level `on:` key, which the truthy rule reads
+  # as the boolean `on`. Keys are therefore not checked — but VALUES still are,
+  # so `enabled: yes` is still an error. That is the footgun worth catching:
+  # YAML 1.1 turns bare yes/no/on/off into booleans, and a chart that expects
+  # the string "no" silently receives `false`.
+  truthy:
+    check-keys: false
+
+  # ---------------------------------------------------------------------------
+  # KEPT STRICT — real bug classes
+  # ---------------------------------------------------------------------------
+
+  # A duplicated key does not error in YAML; the last one silently wins. In a
+  # manifest that means a setting you can see in the file having no effect.
+  key-duplicates: enable
+
+  trailing-spaces: enable
+  new-line-at-end-of-file: enable
+
+  # ---------------------------------------------------------------------------
+  # ENABLED BEYOND THE DEFAULTS — off by default in yamllint, worth having
+  # ---------------------------------------------------------------------------
+
+  # `mode: 0644` is not the integer 644. Implicit octal is a classic source of
+  # wrong file permissions in ConfigMaps and volume mounts.
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
+
+  # `key:` with nothing after it parses as null. Usually a half-finished edit.
+  #
+  # Scoped off the workflows: GitHub Actions requires deliberately valueless
+  # keys — `workflow_dispatch:` is the canonical one. Caught by this rule on its
+  # first run, which is a fair demonstration that the rule works; the exception
+  # is narrowed to the directory that legitimately needs it rather than the rule
+  # being dropped.
+  empty-values:
+    forbid-in-block-mappings: true
+    forbid-in-flow-mappings: true
+    ignore: |
+      .github/workflows/

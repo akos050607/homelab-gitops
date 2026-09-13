@@ -1,0 +1,73 @@
+name: validate
+
+# This repository is reconciled by Argo CD with `selfHeal: true`, so whatever
+# lands on main is applied to the cluster within minutes and cannot be undone by
+# hand. These checks exist to stop a broken manifest from reaching that branch.
+#
+# Nothing here deploys anything and nothing here holds a cluster credential.
+# CI validates; Argo CD pulls. See README.md.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: no job writes to the repo, publishes a package, or needs an
+# OIDC token, so none of them are given the ability to.
+permissions:
+  contents: read
+
+concurrency:
+  # Supersede stale PR runs. Never cancel a run on main — that run is the record
+  # of what Argo CD is about to reconcile.
+  group: validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    # One job per check, so a red X names the failure class rather than just
+    # saying "CI failed". fail-fast is off because all four verdicts are wanted
+    # on every run, not just the first failure.
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [lint, validate, render, policy]
+
+    name: ${{ matrix.check }}
+    # Pinned rather than ubuntu-latest: the `latest` alias rolls to a new image
+    # on GitHub's schedule, changing preinstalled tooling underneath the run.
+    # A validation pipeline should be reproducible.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # checkout writes GITHUB_TOKEN into .git/config by default, where any
+          # later step could read it. Nothing here pushes, so drop it.
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Pinned so a runner image update cannot silently change what `render`
+      # validates against.
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.21.3
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            bin
+            .venv
+          key: tools-${{ runner.os }}-${{ hashFiles('scripts/install-tools.sh') }}
+
+      - name: Install pinned tools
+        run: ./scripts/install-tools.sh
+
+      - name: Run ${{ matrix.check }}
+        run: ./scripts/validate.sh ${{ matrix.check }}

@@ -1,0 +1,6 @@
+# Tooling installed by scripts/install-tools.sh — pinned versions, never committed.
+bin/
+.venv/
+
+# Scratch output from the `render` check.
+.render/
