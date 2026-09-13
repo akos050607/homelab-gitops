@@ -1,0 +1,101 @@
+# The OpenID Connect relying party: https://app.szenassy-akos.com
+#
+# Source, tests and the reasoning behind the token verification live in
+# homelab-platform/oidc-demo/. This file is only how it runs.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oidc-demo
+  namespace: identity
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: oidc-demo } }
+  template:
+    metadata:
+      labels: { app: oidc-demo }
+    spec:
+      nodeSelector: { kubernetes.io/hostname: k3s-server }
+
+      # This service talks to Keycloak over HTTPS and to nothing else. It has no
+      # reason to reach the Kubernetes API, so it is not given the means to: no
+      # token is mounted at all. That is a stronger answer than a narrowly
+      # scoped Role — the right amount of API access here is none, and the
+      # default is to mount a credential regardless.
+      automountServiceAccountToken: false
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+
+      containers:
+        - name: oidc-demo
+          # Pinned to the commit that built it, not `latest`. `latest` moves,
+          # which means the running version is whatever the pipeline last
+          # pushed rather than something git records — and Argo CD would show
+          # Synced throughout.
+          image: ghcr.io/akos050607/homelab-demo-oidc:sha-efe2c75c820370c1705e19a40826aa0399fb17c0
+
+          env:
+            - { name: OIDC_ISSUER, value: "https://auth.szenassy-akos.com/realms/homelab" }
+            - { name: OIDC_CLIENT_ID, value: oidc-demo }
+            # The redirect URI must match the realm registration byte for byte.
+            # Keycloak's strictness here is deliberate and worth understanding:
+            # a loose match is an open redirect, and an open redirect on a
+            # redirect_uri is a token-theft primitive.
+            - { name: OIDC_REDIRECT_URI, value: "https://app.szenassy-akos.com/callback" }
+            - { name: APP_BASE_URL, value: "https://app.szenassy-akos.com" }
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: { name: keycloak-realm-credentials, key: oidc-client-secret }
+
+          ports: [{ name: http, containerPort: 8080 }]
+
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 30
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+            # Unlike Keycloak, this one can be locked down completely: the image
+            # is distroless/static with a single binary that writes nothing to
+            # disk. Sessions live in cookies, not on the filesystem.
+            readOnlyRootFilesystem: true
+
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits:   { memory: 128Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oidc-demo
+  namespace: identity
+spec:
+  selector: { app: oidc-demo }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oidc-demo
+  namespace: identity
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [app.szenassy-akos.com]
+      secretName: oidc-demo-tls
+  rules:
+    - host: app.szenassy-akos.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: oidc-demo, port: { number: 80 } } }

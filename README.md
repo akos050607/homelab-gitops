@@ -22,6 +22,7 @@ holds the Terraform, the architecture decision records, and the chaos log.
 | `apps/cnpg-operator.yaml` | CloudNativePG, the Postgres operator backing Keycloak. Its own namespace because it is cluster-scoped and installs CRDs. |
 | `apps/identity.yaml` | The identity stack as one Argo CD Application, reading `identity/`. One health rollup, one sync unit. |
 | `identity/` | Keycloak, its database, the realm, and the OIDC client application. Numbered files; the numbers are the sync order. |
+| `identity/10-oidc-demo.yaml` | The relying party at `app.szenassy-akos.com`. Image pinned to the commit that built it, never `latest`, and no service account token mounted — it has no reason to reach the API. |
 | `apps/demo-hpa.yaml` | A demo workload: Deployment, Service, TLS Ingress and an HPA (min 2 / max 8, 50% CPU). The Deployment deliberately declares **no** `replicas` — the HPA owns that field. |
 | `apps/test-app.yaml` | The original hand-deployed nginx demo, kept as the example of Argo CD adopting an existing live object. |
 
