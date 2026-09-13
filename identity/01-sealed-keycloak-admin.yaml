@@ -1,0 +1,24 @@
+# Keycloak's bootstrap administrator, sealed.
+#
+# `kubeseal` encrypts with a public key; only the controller in `kube-system`
+# holds the private half, so this ciphertext is safe in a public repository and
+# useless to anyone who clones it. The binding is strict by default — this blob
+# will only decrypt into a Secret of this exact name in this exact namespace, so
+# it cannot be replayed into a namespace the attacker does control.
+#
+# "Bootstrap" is literal: KC_BOOTSTRAP_ADMIN_* creates the initial admin account
+# on an empty database and is ignored on every subsequent start. The account
+# lives in Postgres from then on, not here.
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: keycloak-bootstrap-admin
+  namespace: identity
+spec:
+  encryptedData:
+    password: AgBSAlZKHpGmU8zKU+3TFKE1ceNdIoLF/JkRCZhN/SVSLPl/x0jhzIvEmiQVJjW0FiXbyT6V8bwJJo/R5o3H8umpyOtLo4yhmQhx8F7q16oMq1iUt7ItU6nJr4QFDNsUfk7PnISdM5Ih4b2jOXxtMvO0PI3FVCUbYNtyHw6pkaNZwFT4vhOxFgDTqEIHXfGYJViqYqgighmxAK+cNfk5xnwhYFBSqUUrFqztis89B3QRDA1vVxaO4NJDw+q4++YZYkXeUz3SZrqtalv18hXulepBbGuYQvJTaesivUL01RkuvQel83/2S8PaULpVCh+xjE6HdBskzVNXbZy8iTCdEUrDlkD9YYPxJXFUcCFEGH4aD6tpiYWwLGDqcWObs7mNOzGzbtYNQoEg5O2Zsl7DzD2DshuQZJKF7uCJBshBIpkHlSmwB6yJRi3hCQBEq9Isa8VHtSilYR62oj9X0zq3BhcJKe07JnWC/5MXzICM3s18f8z2SXTjV9xO6wpeJtoygBohPVa4E4oZXPOzlRI3Kn+c511AsUsVeN2pgDUK0bH3nIXkIQwQZ3REANnAm9cPaQV/lwjih+8Tulh5t9I6ZcX8+giJsJ7bpPGgLypxs/yZ7LaUppsMxsd7ckgvQI+/XDdK7SXvNgd6tViP4i7s4V+sC+cZMsR3Xu1eLtNCGNwTRiFVUkpKopJBlXfsKsVd0kA1M0GLJyzbLk0WrbQL7dPCYf62KX5GUXtWJ15+
+    username: AgAxt+umS/m1Gaw3a61tpVpwubzoCpTwxLkTF4XoEIj+Q3cS+gJhg6i4vBMqzvMs6Y/4L97XqSsTfCDBHOzQakk53bDYGjXD5yFdsuVkxBd3U9aNNn33ofwetHCHHFfKGq7kcFHMHIvueWo9US/iyIztKrCj5wUcicd2K/fYEo4ZAvzofK8OVLDdOaX1QWtMetscBxeZTzsTL6yETtyJo/i1ChGwwIgqwkmT7JpSx96RCVH0WQpYZTEPy414qbcslbVOZL2k1BBfa9uTHtnLXH0pU8c0BU00Jocp41EiI0cb+ACdw8aasM+WfnyjDbbRHK6TtAYWdrPZNmzRZbl3yMpl3sJz6htRXhTQcz6k8e5QpNkR98MetGdQe8p1IENbb1vV41U7iehqNB5NzGzqKodDvaSBaNl5m5jKTzp5EXviVR33myODpbdC+E+YX5jJzJ4a2ghSpO8EPOFyc+Qqrkov2YYqdUwi1jylbaATNCkifoXvrSN6FQ5uCipsK812FCK3row9ZF9rAJbkGjEhMbmjIK83mjh/OgmkG6HQ4k7T5v2s7FgAfIqKJcVyYXbwmgrby2l4j8ubgTP+TARIeqEdYhe5T7DXJcRHuHGAin6/90uY4U3CJwtvCNvQ9cDWGW35sq3qk2l8A+3aOmOJvKFtbP+8w8k+kbmf//lskjktsyi0X+SDoxtkiLwFDbW0/Be6Et242w==
+  template:
+    metadata:
+      name: keycloak-bootstrap-admin
+      namespace: identity

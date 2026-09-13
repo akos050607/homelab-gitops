@@ -1,0 +1,53 @@
+# Keycloak's database, managed by the CloudNativePG operator (apps/cnpg-operator.yaml).
+#
+# Sync ordering: the operator lives in a different Argo CD Application, so on a
+# first sync of a fresh cluster this CR can be submitted before its own CRD
+# exists. `SkipDryRunOnMissingResource` stops that from failing the whole
+# Application — Argo CD retries once the CRD lands instead of reporting an error
+# that is really just "not yet".
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: keycloak-db
+  namespace: identity
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  instances: 1
+
+  # One instance, and worth being honest about what that means: this is
+  # availability of zero. A replica would not help either — both copies would
+  # land on the same physical node, because `local-path` is node-local storage.
+  # Real HA needs storage that is not tied to one machine. Accepted for a lab;
+  # named rather than hidden.
+  affinity:
+    nodeSelector: { kubernetes.io/hostname: k3s-server }
+
+  storage:
+    size: 5Gi
+    storageClass: local-path
+
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { memory: 512Mi }
+
+  bootstrap:
+    initdb:
+      database: keycloak
+      owner: keycloak
+      # CNPG generates the password itself and writes it to the Secret
+      # `keycloak-db-app`. Nothing about this credential is authored by hand,
+      # sealed, or present in this repository — Keycloak reads it with a
+      # secretKeyRef at 05.
+
+  postgresql:
+    parameters:
+      # Keycloak opens a pool per instance; the CNPG default of 100 is ample,
+      # but 8 GB of RAM is not, so shared_buffers is kept small deliberately.
+      max_connections: "100"
+      shared_buffers: 128MB
+
+  monitoring:
+    # Scraped by the kube-prometheus-stack already running in `monitoring`.
+    enablePodMonitor: true

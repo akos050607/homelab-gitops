@@ -31,7 +31,7 @@ K8S_VERSION="${K8S_VERSION:-1.33.0}"
 # Prometheus operator kinds that kube-prometheus-stack renders.
 CRD_SCHEMAS='https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 
-MANIFESTS=(root-app.yaml apps/*.yaml)
+MANIFESTS=(root-app.yaml apps/*.yaml identity/*.yaml)
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -101,6 +101,20 @@ check_validate() {
 # strict-values mode, and even charts shipping values.schema.json (Loki does)
 # accept unknown keys and loose types. Tested: `totallyBogusKey: 42` and
 # `replicas: "three"` both render clean. Worth knowing the limit of your own gate.
+#
+# CustomResourceDefinition is skipped, and the reason is a real gap rather than a
+# convenience: kubernetes-json-schema publishes no schema for the kind at all
+# (every variant of customresourcedefinition*.json is a 404 upstream), so
+# kubeconform reports `could not find schema` for any chart that templates its
+# CRDs. The cloudnative-pg chart renders 11 of them and is the first chart here
+# to do so — kube-prometheus-stack ships its CRDs in `crds/`, which `helm
+# template` skips entirely, so the repo never hit this before.
+#
+# Skipping the definitions costs little: a CRD is itself a schema, authored
+# upstream, not by this repository. What matters is that the custom resources
+# written HERE are checked, and they are — `validate` runs the CNPG `Cluster` at
+# identity/03 against the CRDs-catalog schema. The gap is that a malformed CRD
+# shipped by a chart would reach the cluster unflagged.
 # -----------------------------------------------------------------------------
 check_render() {
   head_ "render · helm template -> kubeconform"
@@ -154,6 +168,7 @@ check_render() {
           -kubernetes-version "$K8S_VERSION" \
           -schema-location default \
           -schema-location "$CRD_SCHEMAS" \
+          -skip CustomResourceDefinition \
           "$RENDER_DIR"/*.rendered.yaml; then
       green "  $found chart(s) rendered and valid"
       return
