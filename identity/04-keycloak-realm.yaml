@@ -1587,6 +1587,59 @@ data:
           "webOrigins": [
             "https://app.szenassy-akos.com"
           ]
+        },
+        {
+          "adminUrl": "https://app.szenassy-akos.com/saml/acs",
+          "alwaysDisplayInConsole": false,
+          "attributes": {
+            "client.secret.creation.time": "1789384004",
+            "realm_client": "false",
+            "saml.allow.ecp.flow": "false",
+            "saml.artifact.binding.identifier": "ryJwrP39tyXQtXfUpD0rWzEO4VM=",
+            "saml.assertion.signature": "true",
+            "saml.authnstatement": "true",
+            "saml.client.signature": "false",
+            "saml.force.post.binding": "true",
+            "saml.server.signature": "true",
+            "saml.signature.algorithm": "RSA_SHA256",
+            "saml_assertion_consumer_url_post": "https://app.szenassy-akos.com/saml/acs",
+            "saml_force_name_id_format": "true",
+            "saml_idp_initiated_sso_url_name": "saml-demo",
+            "saml_name_id_format": "username",
+            "saml_signature_canonicalization_method": "http://www.w3.org/2001/10/xml-exc-c14n#"
+          },
+          "authenticationFlowBindingOverrides": {},
+          "bearerOnly": false,
+          "clientAuthenticatorType": "client-secret",
+          "clientId": "saml-demo",
+          "consentRequired": false,
+          "defaultClientScopes": [
+            "saml_organization",
+            "role_list",
+            "AuthnContextClassRef"
+          ],
+          "description": "Second client in the same realm, protocol saml, so the two protocols can be compared first-hand.",
+          "directAccessGrantsEnabled": false,
+          "enabled": true,
+          "frontchannelLogout": true,
+          "fullScopeAllowed": true,
+          "implicitFlowEnabled": false,
+          "name": "SAML demo client",
+          "nodeReRegistrationTimeout": -1,
+          "notBefore": 0,
+          "optionalClientScopes": [],
+          "protocol": "saml",
+          "publicClient": false,
+          "redirectUris": [
+            "https://app.szenassy-akos.com/saml/acs"
+          ],
+          "secret": "__OIDC_CLIENT_SECRET__",
+          "serviceAccountsEnabled": false,
+          "standardFlowEnabled": true,
+          "surrogateAuthRequired": false,
+          "webOrigins": [
+            "https://app.szenassy-akos.com"
+          ]
         }
       ],
       "components": {
@@ -1965,7 +2018,8 @@ data:
       "revokeRefreshToken": false,
       "roles": {
         "client": {
-          "oidc-demo": []
+          "oidc-demo": [],
+          "saml-demo": []
         },
         "realm": [
           {

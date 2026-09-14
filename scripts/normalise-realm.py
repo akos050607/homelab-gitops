@@ -73,9 +73,23 @@ def main(raw_path, current_yaml, out_path):
         realm["users"] = previous["users"]
 
     # Guard: nothing that looks like a live secret may reach the repository.
+    #
+    # The masked-secret check catches the OIDC client. The key-material check is
+    # for SAML: a client configured to sign its own requests gets a generated
+    # keypair, and Keycloak stores the PRIVATE half in the client's attributes.
+    # It does not appear today only because saml-demo has
+    # `saml.client.signature: false`, which is a property of the current config
+    # rather than of the export — flip that switch and a private key would ride
+    # into a public repository in the next diff. Enforced rather than trusted.
     blob = json.dumps(realm)
     if "**********" in blob:
         sys.exit("refusing to write: a masked secret survived normalisation")
+
+    for marker in ("PRIVATE KEY", "privateKey", "saml.signing.private.key",
+                   "saml.encryption.private.key"):
+        if marker in blob:
+            sys.exit(f"refusing to write: export contains key material ({marker!r}). "
+                     "Seal it and substitute a placeholder, as with the client secret.")
 
     json.dump(realm, open(out_path, "w"), indent=2, sort_keys=True, ensure_ascii=False)
     print(f"    clients kept : {[c['clientId'] for c in realm['clients']]}")
