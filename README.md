@@ -152,6 +152,12 @@ that is a manual clean-up gets done once and then rots. Verified by importing th
 committed file into a throwaway realm and confirming it reproduces the
 passwordless flow, the WebAuthn policy and the flow bindings from scratch.
 
+The normaliser also **refuses to write key material**. It does not appear in the
+current export only because `saml-demo` has `saml.client.signature: false`, so
+Keycloak never generated a client keypair — a property of today's configuration,
+not of the export. Flip that switch and a SAML signing **private** key would ride
+into this public repository in the next diff. Enforced rather than trusted.
+
 What is **not** in git, and cannot be: the registered passkey. A WebAuthn
 credential is bound to one authenticator and lives only in the database. Realm
 *configuration* is declarative; an enrolled credential is runtime state.
