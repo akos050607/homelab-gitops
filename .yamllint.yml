@@ -38,11 +38,17 @@ rules:
   # wrapped, and it is generated output — adding `# yamllint disable-line`
   # comments would be lost the next time the secret is re-sealed. Exempting only
   # those files keeps the 120-column rule meaningful everywhere else.
+  #
+  # The realm ConfigMap is exempt on identical grounds: it is emitted by
+  # ./scripts/export-realm.sh, and the two lines that exceed 120 columns are
+  # descriptions Keycloak itself ships on its built-in authentication flows.
+  # Neither is ours to wrap, and both would come back on the next export.
   line-length:
     max: 120
     ignore: |
       apps/sealed-*.yaml
       identity/*-sealed-*.yaml
+      identity/04-keycloak-realm.yaml
 
   # A single-document manifest does not need a leading `---`. Requiring it would
   # be churn across every file for no gain.

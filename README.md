@@ -138,6 +138,24 @@ realm genuinely needs (the confidential client's secret, and the demo user's
 initial password) are sealed at `identity/02`, and substituted into the realm JSON
 by an initContainer before Keycloak opens the file.
 
+The realm file is **generated, not hand-written**: `./scripts/export-realm.sh`
+pulls the live realm back over `identity/04-keycloak-realm.yaml` and
+`scripts/normalise-realm.py` makes it reviewable — stripping database
+identifiers that change on every rebuild, dropping the six clients Keycloak
+creates for itself, and restoring the placeholders. Keycloak masks secrets as
+`**********` on export, and the normaliser refuses to write a file where that
+mask survived, because committing it would silently break the next import.
+
+This matters because of the limitation in *Known limitations* below: a one-shot
+import means console changes live only in Postgres until exported, and an export
+that is a manual clean-up gets done once and then rots. Verified by importing the
+committed file into a throwaway realm and confirming it reproduces the
+passwordless flow, the WebAuthn policy and the flow bindings from scratch.
+
+What is **not** in git, and cannot be: the registered passkey. A WebAuthn
+credential is bound to one authenticator and lives only in the database. Realm
+*configuration* is declarative; an enrolled credential is runtime state.
+
 That initContainer exists because **Keycloak's realm import performs no variable
 substitution**: a `$` in the file is ignored, and `kc.sh import` rejects one
 outright with `Character '$' not allowed` (keycloak/keycloak#12069, #20199). Only
