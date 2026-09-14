@@ -35,7 +35,7 @@ spec:
           # which means the running version is whatever the pipeline last
           # pushed rather than something git records — and Argo CD would show
           # Synced throughout.
-          image: ghcr.io/akos050607/homelab-demo-oidc:sha-efe2c75c820370c1705e19a40826aa0399fb17c0
+          image: ghcr.io/akos050607/homelab-demo-oidc:sha-1cc0873db0cbdc2faffc44c9fc6ae9f2cd2584bb
 
           env:
             - { name: OIDC_ISSUER, value: "https://auth.szenassy-akos.com/realms/homelab" }
